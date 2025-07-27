@@ -523,7 +523,8 @@ def display_order_block_detector_tab(kite: KiteConnect):
             target_date = st.date_input(
                 "Select Date",
                 value=date.today() - timedelta(days=1),
-                max_value=date.today() - timedelta(days=1)
+                max_value=date.today() - timedelta(days=1),
+                key="order_block_historical_date"
             )
         
         with col2:

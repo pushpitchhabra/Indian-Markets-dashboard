@@ -243,7 +243,8 @@ class LivePreMarketSystem:
                 selected_date = st.date_input(
                     "Select Date",
                     value=self.get_last_trading_day(),
-                    max_value=date.today()
+                    max_value=date.today(),
+                    key="live_premarket_historical_date"
                 )
             
             with col2:

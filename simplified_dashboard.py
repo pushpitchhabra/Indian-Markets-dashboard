@@ -342,7 +342,8 @@ def display_premarket_analysis(kite):
         selected_date = st.date_input(
             "Select Date for Analysis",
             value=get_last_trading_day(),
-            max_value=date.today()
+            max_value=date.today(),
+            key="premarket_analysis_date"
         )
     
     with col2:
@@ -445,7 +446,8 @@ def stock_market_dashboard():
         selected_date = st.date_input(
             "Select Date",
             value=get_last_trading_day() if status != "live_market" else date.today(),
-            max_value=date.today()
+            max_value=date.today(),
+            key="market_data_date"
         )
         
         if st.button("📈 Get Basic Market Data"):

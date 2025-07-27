@@ -77,7 +77,7 @@ class MarketDataFetcher:
     
     def fetch_stock_data_yfinance(self, symbols: List[str]) -> pd.DataFrame:
         """
-        Fetch stock data using yfinance (backup method).
+        DEPRECATED: yfinance fallback removed - using Zerodha API only.
         """
         stock_data = []
         
@@ -176,11 +176,12 @@ class MarketDataFetcher:
         if session_type is None:
             session_type = self.get_market_session()
         
-        # Try Kite API first, fallback to yfinance
-        if self.kite:
+        # Use Kite API only - no fallback
+        try:
             df = self.fetch_stock_data_kite(self.nifty_500_symbols)
-        else:
-            df = self.fetch_stock_data_yfinance(self.nifty_500_symbols)
+        except Exception as e:
+            st.error(f"Failed to fetch data from Zerodha API: {e}")
+            return pd.DataFrame()
         
         if df.empty:
             return df

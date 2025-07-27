@@ -304,7 +304,12 @@ class PreMarketHighVolumeAnalyzer:
         if self.kite:
             df = self.fetch_premarket_data_kite(self.nifty_500_symbols, target_date)
         else:
-            df = self.fetch_premarket_data_yfinance(self.nifty_500_symbols, target_date)
+            # Use Kite API only - no yfinance fallback
+            if self.kite:
+                df = self.fetch_premarket_data_kite(self.nifty_500_symbols, target_date)
+            else:
+                st.error("Zerodha API session required for data fetching")
+                return pd.DataFrame()
         
         if df.empty:
             return df

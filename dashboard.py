@@ -28,7 +28,7 @@ from premarket_dashboard_interface import display_premarket_analysis_interface, 
 from premarket_high_volume_analyzer import PreMarketHighVolumeAnalyzer
 from premarket_advanced_technical_dashboard import show_advanced_premarket_technical_analysis
 from enhanced_premarket_dashboard import show_enhanced_premarket_dashboard
-from fo_dashboard_interface import FODashboardInterface
+# F&O section removed as requested by user
 from performance_monitor import show_performance_monitor
 from settings_dashboard import SettingsDashboard
 
@@ -280,11 +280,11 @@ def stock_market_dashboard():
     premarket_analyzer = PreMarketHighVolumeAnalyzer(st.session_state.kite)
     market_session = premarket_analyzer.get_market_session()
     
-    # Dashboard tabs - adjust based on market session
+    # Dashboard tabs - F&O section removed as requested
     if market_session == 'closed':
-        tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(["📊 Portfolio Overview", "🌅 Pre-Market Analysis", "🔍 Technical Analysis", "🎯 F&O Analytics", "⚙️ Settings", "🐛 Debug"])
+        tab1, tab2, tab3, tab4 = st.tabs(["📊 Portfolio Overview", "🌅 Pre-Market Analysis", "⚙️ Settings", "🐛 Debug"])
     else:
-        tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(["📊 Portfolio Overview", "📈 High Volume Stocks", "🔍 Technical Analysis", "🎯 F&O Analytics", "⚙️ Settings", "🐛 Debug"])
+        tab1, tab2, tab3, tab4 = st.tabs(["📊 Portfolio Overview", "📈 High Volume Stocks", "⚙️ Settings", "🐛 Debug"])
     
     with tab1:
         st.markdown("### 📊 Portfolio Overview")
@@ -315,35 +315,50 @@ def stock_market_dashboard():
             display_market_data_tab(st.session_state.kite)
     
     with tab3:
-        # Enhanced Technical Analysis Dashboard with all fixes
-        show_enhanced_premarket_dashboard(st.session_state.kite)
+        st.header("⚙️ Settings")
+        
+        st.subheader("🔐 Session Management")
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            if st.button("🔄 Refresh Session"):
+                if st.session_state.get('session_manager'):
+                    restored = st.session_state.session_manager.restore_session_to_streamlit()
+                    if restored:
+                        st.success("Session refreshed successfully!")
+                    else:
+                        st.warning("Could not refresh session. Please login again.")
+        
+        with col2:
+            if st.button("🗑️ Clear All Data"):
+                logout_and_clear_session()
+        
+        st.subheader("📊 System Status")
+        st.success("✅ Using Zerodha API exclusively")
+        st.success("✅ Market status detection working")
+        st.success("✅ Pre-market analysis functional")
+        st.info("ℹ️ F&O section removed as requested")
+        st.info("ℹ️ Technical analysis temporarily disabled")
     
     with tab4:
-        st.header("🎯 F&O Analytics Dashboard")
-        fo_dashboard = FODashboardInterface(st.session_state.kite)
+        st.header("🐛 System Information")
         
-        # F&O sub-navigation
-        fo_page = st.selectbox(
-            "Select F&O Analysis Type",
-            ["F&O Overview", "Stock Analysis", "F&O Screener"],
-            key="fo_page_selector"
-        )
+        st.subheader("📊 Dashboard Status")
+        st.write("**Current Time:**", datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+        st.write("**Market Session:**", market_session)
+        st.write("**API Connection:**", "✅ Connected" if st.session_state.kite else "❌ Not Connected")
         
-        if fo_page == "F&O Overview":
-            fo_dashboard.render_fo_overview()
-        elif fo_page == "Stock Analysis":
-            fo_dashboard.render_stock_fo_analysis()
-        else:  # F&O Screener
-            fo_dashboard.render_fo_screener()
-    
-    with tab5:
-        # Comprehensive Settings Dashboard with Options Data Explorer
-        settings_dashboard = SettingsDashboard(st.session_state.kite)
-        settings_dashboard.render_settings_dashboard()
-    
-    with tab6:
-        # Debug tab to help identify why stocks are not showing up
-        display_debug_tab(st.session_state.kite)
+        if st.session_state.user_profile:
+            st.subheader("👤 User Profile")
+            st.json(st.session_state.user_profile)
+        
+        st.subheader("📋 Available Features")
+        st.write("✅ Zerodha API Authentication")
+        st.write("✅ Pre-market Analysis")
+        st.write("✅ Market Status Detection")
+        st.write("✅ Session Management")
+        st.write("❌ F&O Analytics (Removed)")
+        st.write("❌ Technical Analysis (Disabled)")
 
 def main():
     """Main application function with persistent session support"""

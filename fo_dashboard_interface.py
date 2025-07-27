@@ -15,8 +15,8 @@ import time
 class FODashboardInterface:
     """Streamlit interface for F&O analysis dashboard."""
     
-    def __init__(self):
-        self.analyzer = NiftyFOStocksAnalyzer()
+    def __init__(self, kite_session=None):
+        self.analyzer = NiftyFOStocksAnalyzer(kite_session)
         
     def render_fo_overview(self):
         """Render F&O market overview section."""

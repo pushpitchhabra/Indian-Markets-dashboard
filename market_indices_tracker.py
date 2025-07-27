@@ -8,7 +8,7 @@ Created: 2025-01-27
 """
 
 import streamlit as st
-import yfinance as yf
+# Removed yfinance - using only Zerodha API
 import pandas as pd
 import numpy as np
 from datetime import datetime

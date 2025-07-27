@@ -17,7 +17,7 @@ Created: 2025-01-27
 import pandas as pd
 import numpy as np
 from datetime import datetime, date, timedelta
-import yfinance as yf
+# Removed yfinance - using only Zerodha API
 import streamlit as st
 from kiteconnect import KiteConnect
 from typing import List, Dict, Optional, Tuple

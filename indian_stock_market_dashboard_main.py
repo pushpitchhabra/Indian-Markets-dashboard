@@ -30,6 +30,7 @@ from premarket_advanced_technical_dashboard import show_advanced_premarket_techn
 from enhanced_premarket_dashboard import show_enhanced_premarket_dashboard
 from fo_dashboard_interface import FODashboardInterface
 from performance_monitor import show_performance_monitor
+from settings_dashboard import SettingsDashboard
 
 # Page configuration
 st.set_page_config(
@@ -319,7 +320,7 @@ def stock_market_dashboard():
     
     with tab4:
         st.header("🎯 F&O Analytics Dashboard")
-        fo_dashboard = FODashboardInterface()
+        fo_dashboard = FODashboardInterface(st.session_state.kite)
         
         # F&O sub-navigation
         fo_page = st.selectbox(
@@ -336,26 +337,9 @@ def stock_market_dashboard():
             fo_dashboard.render_fo_screener()
     
     with tab5:
-        st.markdown("### ⚙️ Dashboard Settings")
-        
-        st.markdown("#### 🔐 Session Management")
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            if st.button("🔄 Refresh Session"):
-                if st.session_state.get('session_manager'):
-                    restored = st.session_state.session_manager.restore_session_to_streamlit()
-                    if restored:
-                        st.success("Session refreshed successfully!")
-                    else:
-                        st.warning("Could not refresh session. Please login again.")
-        
-        with col2:
-            if st.button("🗑️ Clear All Data"):
-                logout_and_clear_session()
-        
-        st.markdown("#### 📊 Data Settings")
-        st.info("🛠️ Volume thresholds, refresh intervals, and other configuration options will be added here.")
+        # Comprehensive Settings Dashboard with Options Data Explorer
+        settings_dashboard = SettingsDashboard(st.session_state.kite)
+        settings_dashboard.render_settings_dashboard()
     
     with tab6:
         # Debug tab to help identify why stocks are not showing up

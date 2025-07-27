@@ -13,7 +13,7 @@ from pathlib import Path
 def check_requirements():
     """Check if all required packages are installed."""
     required_packages = [
-        'streamlit', 'yfinance', 'pandas', 'numpy', 
+        'streamlit', 'pandas', 'numpy', 
         'plotly', 'ta', 'kiteconnect'
     ]
     

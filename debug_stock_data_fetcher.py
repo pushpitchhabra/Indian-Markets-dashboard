@@ -6,7 +6,7 @@ This will test both Kite API and Yahoo Finance fallback methods.
 """
 
 import pandas as pd
-import yfinance as yf
+# Removed yfinance - using only Zerodha API
 from datetime import datetime, time
 import streamlit as st
 from kiteconnect import KiteConnect

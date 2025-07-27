@@ -4,7 +4,7 @@ Comprehensive analysis module for Futures & Options eligible stocks
 """
 
 import streamlit as st
-import yfinance as yf
+# Removed yfinance - using only Zerodha API
 import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
@@ -22,7 +22,8 @@ warnings.filterwarnings('ignore')
 class NiftyFOStocksAnalyzer:
     """Analyzer for Nifty F&O eligible stocks with comprehensive analytics."""
     
-    def __init__(self):
+    def __init__(self, kite_session=None):
+        self.kite = kite_session
         # Top F&O eligible stocks with lot sizes and sector mapping
         self.fo_stocks = {
             # Large Cap Stocks
@@ -95,32 +96,59 @@ class NiftyFOStocksAnalyzer:
             "NIFTYAUTO": {"name": "Nifty Auto", "symbol": "^CNXAUTO", "lot_size": 75}
         }
     
-    def get_stock_data(self, symbol: str, period: str = "1y") -> pd.DataFrame:
-        """Get stock data with reliable fetching."""
+    def get_stock_data_kite(self, symbol: str, days: int = 30) -> pd.DataFrame:
+        """Get historical stock data using Kite API."""
         try:
-            # Try multiple ticker formats for better success rate
-            ticker_formats = [f"{symbol}.NS", f"{symbol}.BO", symbol]
+            if not hasattr(self, 'kite') or not self.kite:
+                return pd.DataFrame()
             
-            for ticker_symbol in ticker_formats:
-                try:
-                    ticker = yf.Ticker(ticker_symbol)
-                    data = ticker.history(period=period)
-                    
-                    if not data.empty and len(data) > 50:  # Need sufficient data for F&O analysis
-                        return data.dropna()
-                        
-                except Exception as e:
-                    continue
-           
+            # Get instrument token
+            instruments = self.kite.instruments("NSE")
+            token = None
+            
+            for instrument in instruments:
+                if instrument['tradingsymbol'] == symbol:
+                    token = instrument['instrument_token']
+                    break
+            
+            if not token:
+                return pd.DataFrame()
+            
+            # Get historical data
+            from_date = datetime.now() - timedelta(days=days)
+            to_date = datetime.now()
+            
+            historical_data = self.kite.historical_data(
+                instrument_token=token,
+                from_date=from_date,
+                to_date=to_date,
+                interval="day"
+            )
+            
+            if historical_data:
+                df = pd.DataFrame(historical_data)
+                # Rename columns to match yfinance format for compatibility
+                df = df.rename(columns={
+                    'open': 'Open',
+                    'high': 'High', 
+                    'low': 'Low',
+                    'close': 'Close',
+                    'volume': 'Volume'
+                })
+                df['date'] = pd.to_datetime(df['date'])
+                df.set_index('date', inplace=True)
+                return df.dropna()
+            
             return pd.DataFrame()
             
         except Exception as e:
+            print(f"Error fetching Kite data for {symbol}: {e}")
             return pd.DataFrame()
     
-    def get_fo_stock_data(self, symbol: str, period: str = "1mo") -> pd.DataFrame:
-        """Get OHLCV data for F&O stock."""
+    def get_fo_stock_data(self, symbol: str, days: int = 30) -> pd.DataFrame:
+        """Get OHLCV data for F&O stock using Kite API."""
         try:
-            return self.get_stock_data(symbol, period)
+            return self.get_stock_data_kite(symbol, days)
         except Exception as e:
             print(f"Error fetching data for {symbol}: {e}")
             return pd.DataFrame()

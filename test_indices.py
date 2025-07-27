@@ -1,7 +1,7 @@
 """
 Test script to check which index symbols are working
 """
-import yfinance as yf
+# Removed yfinance - using only Zerodha API
 import warnings
 warnings.filterwarnings('ignore')
 

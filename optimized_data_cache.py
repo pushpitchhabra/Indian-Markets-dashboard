@@ -5,7 +5,7 @@ High-performance caching system for market data with concurrent fetching
 and intelligent cache management to speed up dashboard performance.
 """
 
-import yfinance as yf
+# Removed yfinance - using only Zerodha API
 import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta

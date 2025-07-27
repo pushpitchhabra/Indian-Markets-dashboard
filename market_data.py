@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 from datetime import datetime, time, timedelta
-import yfinance as yf
+# Removed yfinance - using only Zerodha API
 import requests
 from typing import List, Dict, Optional, Tuple
 import streamlit as st

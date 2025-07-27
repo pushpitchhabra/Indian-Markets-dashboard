@@ -19,7 +19,7 @@ Created: 2025-01-27
 import pandas as pd
 import numpy as np
 from datetime import datetime, time, timedelta
-import yfinance as yf
+# Removed yfinance - using only Zerodha API
 import requests
 from typing import List, Dict, Optional, Tuple
 import streamlit as st
@@ -93,192 +93,51 @@ class MarketDataFetcher:
         else:
             return "closed"
     
-    def fetch_stock_data_yfinance(self, symbols: List[str]) -> pd.DataFrame:
+    def fetch_stock_data_kite_only(self, symbols: List[str]) -> pd.DataFrame:
         """
-        Fetch stock data using yfinance (backup method).
-        Enhanced to work better when market is closed.
-        """
-        stock_data = []
-        
-        for symbol in symbols:
-            try:
-                # Add .NS suffix for NSE stocks
-                ticker = f"{symbol}.NS"
-                stock = yf.Ticker(ticker)
-                
-                # Try to get recent data - use multiple periods for better coverage
-                hist = None
-                periods_to_try = ["1d", "2d", "5d"]
-                
-                for period in periods_to_try:
-                    try:
-                        hist = stock.history(period=period, interval="1d")
-                        if not hist.empty:
-                            break
-                    except:
-                        continue
-                
-                if hist is None or hist.empty:
-                    # Try getting basic info as last resort
-                    try:
-                        info = stock.info
-                        if info and 'regularMarketPrice' in info:
-                            # Create mock data from info
-                            current_price = info.get('regularMarketPrice', 0)
-                            volume = info.get('regularMarketVolume', 0)
-                            prev_close = info.get('regularMarketPreviousClose', current_price)
-                            
-                            if current_price > 0 and volume >= self.min_volume:
-                                price_change = current_price - prev_close
-                                price_change_pct = (price_change / prev_close * 100) if prev_close > 0 else 0
-                                
-                                stock_data.append({
-                                    'symbol': symbol,
-                                    'current_price': round(float(current_price), 2),
-                                    'volume': int(volume),
-                                    'price_change': round(float(price_change), 2),
-                                    'price_change_pct': round(float(price_change_pct), 2),
-                                    'high': round(float(info.get('regularMarketDayHigh', current_price)), 2),
-                                    'low': round(float(info.get('regularMarketDayLow', current_price)), 2),
-                                    'market_cap': info.get('marketCap', 0),
-                                    'last_updated': datetime.now().strftime('%H:%M:%S')
-                                })
-                    except:
-                        pass
-                    continue
-                
-                # Process historical data
-                latest_data = hist.iloc[-1]
-                current_price = float(latest_data['Close'])
-                
-                # Get volume - use the latest day's volume
-                volume = int(latest_data['Volume']) if 'Volume' in latest_data else 0
-                
-                # Only include if volume meets criteria
-                if volume < self.min_volume:
-                    continue
-                
-                # Calculate price change
-                if len(hist) >= 2:
-                    prev_close = float(hist['Close'].iloc[-2])
-                    price_change = current_price - prev_close
-                    price_change_pct = (price_change / prev_close) * 100
-                else:
-                    # Try to get previous close from stock info
-                    try:
-                        info = stock.info
-                        prev_close = info.get('regularMarketPreviousClose', current_price)
-                        price_change = current_price - prev_close
-                        price_change_pct = (price_change / prev_close * 100) if prev_close > 0 else 0
-                    except:
-                        price_change = 0
-                        price_change_pct = 0
-                
-                stock_data.append({
-                    'symbol': symbol,
-                    'current_price': round(current_price, 2),
-                    'volume': volume,
-                    'price_change': round(price_change, 2),
-                    'price_change_pct': round(price_change_pct, 2),
-                    'high': round(float(latest_data['High']), 2),
-                    'low': round(float(latest_data['Low']), 2),
-                    'market_cap': 0,  # Will be populated if available
-                    'last_updated': datetime.now().strftime('%H:%M:%S')
-                })
-                    
-            except Exception as e:
-                # Silently continue - don't print errors in production
-                continue
-        
-        return pd.DataFrame(stock_data)
-    
-    def fetch_stock_data_kite(self, symbols: List[str]) -> pd.DataFrame:
-        """
-        Fetch stock data using Kite Connect API (primary method).
+        Fetch stock data using only Zerodha Kite API.
         """
         if not self.kite:
+            print("Kite session not available")
             return pd.DataFrame()
         
-        stock_data = []
+        data = []
         
         try:
             # Get instrument tokens for symbols
             instruments = self.kite.instruments("NSE")
-            symbol_token_map = {inst['tradingsymbol']: inst['instrument_token'] 
-                              for inst in instruments 
-                              if inst['tradingsymbol'] in symbols}
+            symbol_tokens = {}
+            
+            for instrument in instruments:
+                if instrument['tradingsymbol'] in symbols:
+                    symbol_tokens[instrument['tradingsymbol']] = instrument['instrument_token']
             
             # Fetch quotes for all symbols
-            tokens = list(symbol_token_map.values())
-            if tokens:
-                quotes = self.kite.quote(tokens)
+            if symbol_tokens:
+                quotes = self.kite.quote(list(symbol_tokens.values()))
                 
-                for symbol in symbols:
-                    token = symbol_token_map.get(symbol)
-                    if token and token in quotes:
+                for symbol, token in symbol_tokens.items():
+                    if token in quotes:
                         quote = quotes[token]
+                        ohlc = quote.get('ohlc', {})
                         
-                        volume = quote.get('volume', 0)
-                        if volume >= self.min_volume:
-                            stock_data.append({
-                                'symbol': symbol,
-                                'current_price': quote.get('last_price', 0),
-                                'volume': volume,
-                                'price_change': quote.get('net_change', 0),
-                                'price_change_pct': quote.get('net_change', 0) / quote.get('last_price', 1) * 100,
-                                'high': quote.get('ohlc', {}).get('high', 0),
-                                'low': quote.get('ohlc', {}).get('low', 0),
-                                'open': quote.get('ohlc', {}).get('open', 0),
-                                'close': quote.get('ohlc', {}).get('close', 0),
-                                'last_updated': datetime.now().strftime('%H:%M:%S')
-                            })
-                            
+                        stock_data = {
+                            'symbol': symbol,
+                            'ltp': quote.get('last_price', 0),
+                            'volume': quote.get('volume', 0),
+                            'open': ohlc.get('open', 0),
+                            'high': ohlc.get('high', 0),
+                            'low': ohlc.get('low', 0),
+                            'prev_close': ohlc.get('close', 0),
+                            'change': quote.get('net_change', 0),
+                            'change_percent': quote.get('percentage_change', 0)
+                        }
+                        data.append(stock_data)
+                        
         except Exception as e:
-            print(f"Error fetching data from Kite: {str(e)}")
-            return pd.DataFrame()
+            print(f"Error fetching data from Kite API: {e}")
         
-        return pd.DataFrame(stock_data)
-    
-    def generate_mock_data(self) -> pd.DataFrame:
-        """
-        Generate mock data for testing when real data is not available.
-        This helps ensure the UI works even when APIs are down.
-        """
-        import random
-        
-        mock_data = []
-        base_prices = {
-            'RELIANCE': 2800, 'TCS': 3500, 'HDFCBANK': 1600, 'INFY': 1400, 'HINDUNILVR': 2400,
-            'ICICIBANK': 950, 'BHARTIARTL': 850, 'ITC': 450, 'SBIN': 600, 'LT': 3200
-        }
-        
-        for symbol in list(base_prices.keys()):
-            base_price = base_prices[symbol]
-            # Generate realistic variations
-            price_change_pct = random.uniform(-5, 5)  # -5% to +5%
-            current_price = base_price * (1 + price_change_pct/100)
-            price_change = current_price - base_price
-            
-            # Generate realistic volume (above our threshold)
-            volume = random.randint(100000, 5000000)  # 1L to 50L shares
-            
-            mock_data.append({
-                'symbol': symbol,
-                'current_price': round(current_price, 2),
-                'volume': volume,
-                'price_change': round(price_change, 2),
-                'price_change_pct': round(price_change_pct, 2),
-                'high': round(current_price * random.uniform(1.0, 1.05), 2),
-                'low': round(current_price * random.uniform(0.95, 1.0), 2),
-                'market_cap': random.randint(50000, 2000000),  # Mock market cap
-                'last_updated': datetime.now().strftime('%H:%M:%S')
-            })
-        
-        df = pd.DataFrame(mock_data)
-        # Filter by volume and sort
-        df = df[df['volume'] >= self.min_volume]
-        df = df.sort_values('volume', ascending=False)
-        return df.reset_index(drop=True)
+        return pd.DataFrame(data)
     
     def get_high_volume_stocks(self, session_type: str = None) -> pd.DataFrame:
         """
@@ -287,24 +146,30 @@ class MarketDataFetcher:
         if session_type is None:
             session_type = self.get_market_session()
         
-        # Try Kite API first, fallback to yfinance, then mock data
-        if self.kite:
-            df = self.fetch_stock_data_kite(self.nifty_500_symbols)
-        else:
-            df = self.fetch_stock_data_yfinance(self.nifty_500_symbols)
+        # Use only Kite API for data fetching
+        if not self.kite:
+            print("Error: Kite session required for data fetching")
+            return pd.DataFrame()
         
-        # If no real data is available, use mock data for testing
+        df = self.fetch_stock_data_kite_only(self.nifty_500_symbols)
+        
         if df.empty:
-            df = self.generate_mock_data()
-            # Add a note that this is mock data
-            if not df.empty:
-                df['market_session'] = f"{session_type}_MOCK_DATA"
-                return df
-            else:
-                return df
+            print("No data available from Kite API")
+            return pd.DataFrame()
         
         # Filter by minimum volume
         df = df[df['volume'] >= self.min_volume]
+        
+        # Rename columns to match expected format
+        df = df.rename(columns={
+            'ltp': 'current_price',
+            'change': 'price_change',
+            'change_percent': 'price_change_pct'
+        })
+        
+        # Add missing columns
+        df['market_cap'] = 0  # Will be calculated separately if needed
+        df['last_updated'] = datetime.now().strftime('%H:%M:%S')
         
         # Sort by volume (highest first)
         df = df.sort_values('volume', ascending=False)

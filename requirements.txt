@@ -11,3 +11,4 @@ yfinance>=0.2.18
 ta>=0.10.0
 matplotlib>=3.7.0
 seaborn>=0.12.0
+scipy>=1.11.0

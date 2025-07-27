@@ -311,6 +311,83 @@ class NiftyFOStocksAnalyzer:
     def get_index_fo_data(self) -> List[Dict]:
         """Alias for get_fo_overview for dashboard compatibility."""
         return self.get_fo_overview()
+    
+    def get_fo_analytics(self, symbol: str) -> Dict:
+        """Get comprehensive F&O analytics for a single stock."""
+        try:
+            result = self.analyze_fo_stock(symbol)
+            if result:
+                return {
+                    'status': 'success',
+                    'symbol': symbol,
+                    'name': result.get('name', symbol),
+                    'sector': result.get('sector', 'Unknown'),
+                    'current_price': result.get('current_price', 0),
+                    'price_change_pct': result.get('price_change_pct', 0),
+                    'volume_ratio': result.get('volume_ratio', 1.0),
+                    'historical_volatility': result.get('historical_volatility', 0),
+                    'lot_size': result.get('lot_size', 0),
+                    'lot_value': result.get('lot_value', 0),
+                    'greeks': result.get('greeks', {}),
+                    'strikes': result.get('strikes', {}),
+                    'signals': result.get('signals', [])
+                }
+            else:
+                return {
+                    'status': 'error',
+                    'symbol': symbol,
+                    'error': 'No data available'
+                }
+        except Exception as e:
+            return {
+                'status': 'error',
+                'symbol': symbol,
+                'error': str(e)
+            }
+    
+    def get_top_fo_stocks_by_volume(self, min_volume_ratio: float = 1.5, limit: int = 20) -> List[Dict]:
+        """Get top F&O stocks by volume activity."""
+        results = []
+        
+        for symbol in list(self.fo_stocks.keys())[:limit]:
+            try:
+                analytics = self.get_fo_analytics(symbol)
+                if analytics['status'] == 'success' and analytics['volume_ratio'] >= min_volume_ratio:
+                    results.append(analytics)
+            except Exception as e:
+                print(f"Error analyzing {symbol}: {e}")
+                continue
+        
+        # Sort by volume ratio descending
+        results.sort(key=lambda x: x.get('volume_ratio', 0), reverse=True)
+        return results
+    
+    def get_high_volatility_fo_stocks(self, min_volatility: float = 25.0, limit: int = 20) -> List[Dict]:
+        """Get F&O stocks with high volatility."""
+        results = []
+        
+        for symbol in list(self.fo_stocks.keys())[:limit]:
+            try:
+                analytics = self.get_fo_analytics(symbol)
+                if analytics['status'] == 'success' and analytics['historical_volatility'] >= min_volatility:
+                    results.append(analytics)
+            except Exception as e:
+                print(f"Error analyzing {symbol}: {e}")
+                continue
+        
+        # Sort by volatility descending
+        results.sort(key=lambda x: x.get('historical_volatility', 0), reverse=True)
+        return results
+    
+    def get_fo_stocks_by_sector(self, sector: str, limit: int = 10) -> List[str]:
+        """Get F&O stock symbols by sector."""
+        sector_stocks = []
+        for symbol, info in self.fo_stocks.items():
+            if info['sector'].lower() == sector.lower():
+                sector_stocks.append(symbol)
+                if len(sector_stocks) >= limit:
+                    break
+        return sector_stocks
 
 # Test the module
 if __name__ == "__main__":

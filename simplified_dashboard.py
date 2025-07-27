@@ -87,6 +87,8 @@ def initialize_session_state():
         st.session_state.access_token = ""
     if 'user_profile' not in st.session_state:
         st.session_state.user_profile = None
+    if 'login_time' not in st.session_state:
+        st.session_state.login_time = "Not logged in"
 
 def get_market_session() -> tuple:
     """
@@ -399,7 +401,8 @@ def stock_market_dashboard():
             st.write(f"**Email:** {st.session_state.user_profile['email']}")
         
         st.markdown("### 📊 Session Info")
-        st.write(f"**Login Time:** {st.session_state.login_time}")
+        login_time = getattr(st.session_state, 'login_time', 'Not available')
+        st.write(f"**Login Time:** {login_time}")
         st.write(f"**Status:** Active ✅")
         
         if st.button("🚪 Logout"):

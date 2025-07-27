@@ -24,6 +24,9 @@ from zerodha_session_manager import (
     logout_and_clear_session,
     display_session_info
 )
+from instrument_universe_manager import display_instrument_universe_tab
+from live_premarket_system import display_live_premarket_tab
+from institutional_order_block_detector import display_order_block_detector_tab
 
 # Page configuration
 st.set_page_config(
@@ -405,17 +408,33 @@ def stock_market_dashboard():
     # Display market status
     status, is_trading_day = display_market_status()
     
-    # Main content tabs
-    tab1, tab2, tab3 = st.tabs(["🌅 Pre-Market Analysis", "📊 Market Data", "⚙️ Settings"])
+    # Main content tabs - Enhanced with new features
+    tab1, tab2, tab3, tab4, tab5 = st.tabs([
+        "🌅 Live Pre-Market", 
+        "🌐 Instrument Universe", 
+        "🎯 Order Block Detector", 
+        "📊 Market Data", 
+        "⚙️ Settings"
+    ])
     
     with tab1:
-        display_premarket_analysis(st.session_state.kite)
+        # Live Pre-Market System with toggle and refresh controls
+        display_live_premarket_tab(st.session_state.kite)
     
     with tab2:
-        st.header("📊 Market Data")
+        # Instrument Universe Manager - Top 500 by market cap/volume
+        display_instrument_universe_tab(st.session_state.kite)
+    
+    with tab3:
+        # Institutional Order Block Detector
+        display_order_block_detector_tab(st.session_state.kite)
+    
+    with tab4:
+        # Basic Market Data (fallback)
+        st.header("📊 Basic Market Data")
         
         if status == "live_market":
-            st.info("🟢 Market is live! Real-time data available.")
+            st.info("🟢 Market is live! Use Live Pre-Market tab for real-time data.")
         else:
             st.info(f"🔴 Market is closed. Showing last trading day data: {get_last_trading_day()}")
         
@@ -426,7 +445,7 @@ def stock_market_dashboard():
             max_value=date.today()
         )
         
-        if st.button("📈 Get Market Data"):
+        if st.button("📈 Get Basic Market Data"):
             with st.spinner("Fetching market data..."):
                 nifty_stocks = get_nifty_50_stocks()
                 df = fetch_basic_stock_data(st.session_state.kite, nifty_stocks, selected_date)
@@ -436,7 +455,7 @@ def stock_market_dashboard():
                 else:
                     st.error("❌ No data available")
     
-    with tab3:
+    with tab5:
         st.header("⚙️ Settings")
         
         st.subheader("🔐 Session Management")
@@ -450,10 +469,35 @@ def stock_market_dashboard():
             if st.button("🗑️ Clear All Data"):
                 logout_and_clear_session()
         
-        st.subheader("📊 Data Settings")
-        st.info("✅ Using Zerodha API exclusively for all data")
-        st.info("✅ Market status detection working")
+        st.subheader("📊 System Status")
+        st.success("✅ Using Zerodha API exclusively for all data")
+        st.success("✅ Market status detection working")
+        st.success("✅ Live pre-market system implemented")
+        st.success("✅ Instrument universe manager (top 500)")
+        st.success("✅ Institutional order block detector")
         st.info("✅ Last trading day fallback implemented")
+        
+        st.subheader("🚀 New Features Added")
+        st.markdown("""
+        **🌅 Live Pre-Market System:**
+        - Real-time streaming during pre-market hours
+        - Start/stop toggle controls
+        - Configurable refresh intervals (30s-5min)
+        - API rate limiting
+        
+        **🌐 Instrument Universe Manager:**
+        - Top 500 stocks by market cap and volume
+        - Hybrid approach (better than just Nifty 500)
+        - Real-time data from Zerodha API
+        - Sector classification and statistics
+        
+        **🎯 Institutional Order Block Detector:**
+        - Live and historical analysis
+        - Volume spike detection (3x+ normal)
+        - Price impact analysis
+        - Confidence scoring system
+        - Visual charts and alerts
+        """)
 
 def main():
     """Main application function"""

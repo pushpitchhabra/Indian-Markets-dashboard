@@ -70,8 +70,8 @@ logs/
 # pyenv
 .python-version
 
-# Streamlit
-.streamlit/
+# Streamlit (allow config for deployment)
+# .streamlit/
 
 # Data files (optional - uncomment if you don't want to track data files)
 # *.csv
